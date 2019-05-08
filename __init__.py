@@ -20,8 +20,6 @@ Store the filename.
 """
 
 PLUGIN_NAME = u"GetFileName"
-PLUGIN_VERSION_TUPLE = (0, 0, 13)
-PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 
 import sys, os, re, time, json, ast
@@ -69,7 +67,7 @@ class GetFileName(FileTypePlugin):
     description             = _('Store the filename of the imported book in a custom column')
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = u"Anonimo"
-    version                 = PLUGIN_VERSION_TUPLE
+    version                 = (0, 0, 13)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
     on_import               = True

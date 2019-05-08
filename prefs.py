@@ -10,7 +10,6 @@ import json
 import traceback
 
 from calibre.utils.config import dynamic, config_dir, JSONConfig
-from calibre_plugins.getfilename.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre.constants import iswindows, isosx
 from calibre.utils.date import UNDEFINED_DATE
 from calibre.ptempfile import PersistentTemporaryFile, PersistentTemporaryDirectory

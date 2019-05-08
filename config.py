@@ -30,7 +30,6 @@ from calibre.gui2 import (error_dialog, question_dialog, info_dialog, open_url,
 from calibre.utils.config import dynamic, config_dir, JSONConfig
 from calibre.constants import iswindows, isosx
 # modules from this plugin's zipfile.
-from calibre_plugins.getfilename.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre import prints
 
 from calibre_plugins.getfilename.common_utils import (KeyboardConfigDialog, PrefsViewerDialog, CustomColumnComboBox)
