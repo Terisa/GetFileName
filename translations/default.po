@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-29 09:49+0000\n"
+"POT-Creation-Date: 2020-05-26 05:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,72 +17,72 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: __init__.py:65
+#: __init__.py:70
 msgid "Store the filename of the imported book in a custom column"
 msgstr ""
 
-#: common_utils.py:236
+#: common_utils.py:237
 msgid "Restart required"
 msgstr ""
 
-#: common_utils.py:237
+#: common_utils.py:238
 msgid ""
 "Title image not found - you must restart Calibre before using this plugin!"
 msgstr ""
 
-#: common_utils.py:517
+#: common_utils.py:518
 msgid "Undefined"
 msgstr ""
 
-#: common_utils.py:591
+#: common_utils.py:592
 msgid "Restart calibre now"
 msgstr ""
 
-#: config.py:97
+#: config.py:190
 msgid "File name options:"
 msgstr ""
 
-#: config.py:104
+#: config.py:197
 msgid "Include folder"
 msgstr ""
 
-#: config.py:106
+#: config.py:199
 msgid "It indicates it stores the folder with the filename."
 msgstr ""
 
-#: config.py:112
+#: config.py:205
 msgid "&File name:"
 msgstr ""
 
-#: config.py:113
+#: config.py:206
 msgid "Custom text column for storing the filename and folder if included"
 msgstr ""
 
-#: config.py:123
+#: config.py:216
 msgid "File &Extension:"
 msgstr ""
 
-#: config.py:124
+#: config.py:217
 msgid ""
 "Custom text column for storing the extension (if empty the filename is not "
 "splited). Not used if file name column is empty"
 msgstr ""
 
-#: config.py:137
+#: config.py:230
 msgid "File &Folder:"
 msgstr ""
 
-#: config.py:138
+#: config.py:231
 msgid ""
 "Custom text column for storing the folder (if empty the filename is not "
 "splited). Not used if file name column is empty"
 msgstr ""
 
-#: config.py:150
+#: config.py:243
 msgid "File &Date:"
 msgstr ""
 
-#: config.py:151
+#: config.py:244
 msgid ""
 "Custom date column for storing the last modified date (if empty the date is "
 "not stored)"
