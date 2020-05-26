@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
 
@@ -124,14 +127,14 @@ class GetFileName(FileTypePlugin):
         for llamada in traceback.format_stack ():
             if (llamada.find ("add_empty") != -1) or (llamada.find ("copy_to_library") != -1) or (llamada.find ("my_tools") != -1):
                 if DEBUG:
-                    if (llamada.find ("add_empty") <> -1):
-                        print ("Libro vacio:", llamada)
-                    elif (llamada.find ("copy_to_library") <> -1):
-                        print ("Copia a biblioteca:", llamada)
-                    elif (llamada.find ("my_tools") <> -1):
-                        print ("Mis herramientas:", llamada)
+                    if (llamada.find ("add_empty") != -1):
+                        print(("Libro vacio:", llamada))
+                    elif (llamada.find ("copy_to_library") != -1):
+                        print(("Copia a biblioteca:", llamada))
+                    elif (llamada.find ("my_tools") != -1):
+                        print(("Mis herramientas:", llamada))
                     else:
-                        print ("Error:", llamada)
+                        print(("Error:", llamada))
                 fich_temp = True
                         
         if not (fich_temp):
@@ -144,13 +147,13 @@ class GetFileName(FileTypePlugin):
                     prefs_value = cfg.get_library_config(db)
             except:
                 debug_print ("Error reading config for:")
-                for fmt, file in fmt_map.iteritems():
+                for fmt, file in six.iteritems(fmt_map):
                     debug_print ("- ", file)
                 return
 
-            for col, val in cfg.ALL_COLUMNS.iteritems():
+            for col, val in six.iteritems(cfg.ALL_COLUMNS):
                 nom_column = prefs_value[val]
-                if (nom_column <> '') and not (nom_column in all_cols):
+                if (nom_column != '') and not (nom_column in all_cols):
                     nom_column = ''
                 
                 config_col[col] = {'nom':nom_column, 'empty':''}
@@ -159,14 +162,14 @@ class GetFileName(FileTypePlugin):
                 
             # debug_print (config_col)
                             
-            if (config_col[cfg.NAME]['nom'] <> ''):    
+            if (config_col[cfg.NAME]['nom'] != ''):    
                 get_original_file = False
                 if (prefs_value[cfg.OPC_PREF] == 'path'):
                     include_path = True
                     get_original_file = True
                 else:
                     include_path = False
-                    if (config_col[cfg.DATE]['nom'] <> ''):
+                    if (config_col[cfg.DATE]['nom'] != ''):
                         get_original_file = True
                     
                 nom_fich = ''
@@ -186,7 +189,7 @@ class GetFileName(FileTypePlugin):
                         for line in lineas:
                             try:
                                 dict_aux = json.loads (line.rstrip ('\n'))
-                                for fich, path in dict_aux.iteritems():
+                                for fich, path in six.iteritems(dict_aux):
                                     dictio[fich] = path
                                 #debug_print (dict_aux)
                             except ValueError:
@@ -197,7 +200,7 @@ class GetFileName(FileTypePlugin):
                     #archivos = self.prefs['procesados']
                     # debug_print ("archivos: ", archivos)
             
-                for fmt, file in fmt_map.iteritems():
+                for fmt, file in six.iteritems(fmt_map):
                     #
                     # Check original_path_to_file in plugin
                     #
@@ -230,7 +233,7 @@ class GetFileName(FileTypePlugin):
                         debug_print ("Fich ori: ", path_ori)
         
                     if (include_path):                
-                        if (config_col[cfg.PATH]['nom'] <> ''):
+                        if (config_col[cfg.PATH]['nom'] != ''):
                             path_fich = os.path.dirname (path_ori)
                             path_fich = os.path.normpath (path_fich)
                             nom_fich = os.path.basename (path_ori)
@@ -266,11 +269,11 @@ class GetFileName(FileTypePlugin):
                     debug_print ("File: ", nom_fich)
                     dbA = db.new_api
                     try:
-                        for col, column in config_col.iteritems():
+                        for col, column in six.iteritems(config_col):
                             # debug_print ('col: ', col)
                             # debug_print ('column: ', column)
                             # debug_print ('value: ', value_col[col])
-                            if ((value_col[col] <> column['empty']) and (column['nom'] <> '')):
+                            if ((value_col[col] != column['empty']) and (column['nom'] != '')):
                                 val_db = dbA.field_for (column['nom'], book_id, "")
                                 #debug_print ('Updating value:', val_db)
                                 if (val_db == column['empty']):
@@ -278,10 +281,10 @@ class GetFileName(FileTypePlugin):
                                     numF = dbA.set_field(column['nom'], {book_id:value_col[col]})    
                             
                     except Exception as inst:
-                        print(type(inst))    # the exception instance
-                        print(inst.args)     # arguments stored in .args
+                        print((type(inst)))    # the exception instance
+                        print((inst.args))     # arguments stored in .args
                         print(inst)
-                        print "There was some problem updating metadata"
+                        print("There was some problem updating metadata")
                         debug_print ("There was some problem updating metadata")
                         debug_print ("* instance: ", type(inst))
                         debug_print ("* args: ", inst.args)

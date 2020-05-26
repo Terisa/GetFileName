@@ -3,6 +3,8 @@
 
 from __future__ import with_statement
 
+from __future__ import absolute_import
+import six
 __license__ = 'GPL v3'
 
 # Standard Python modules.
@@ -105,7 +107,7 @@ def migrate (db, aux_prefs):
     library_config = db.prefs.get_namespaced(PREFS_NAMESPACE, PREFS_KEY_SETTINGS,
                 copy.deepcopy(DEFAULT_LIBRARY_VALUES))
                 
-    for key, col in DEFAULT_MIGRATION.iteritems():
+    for key, col in six.iteritems(DEFAULT_MIGRATION):
         debug_print ('col: ', col)
         aux_prefs.set (col, library_config[key])
         
@@ -121,7 +123,7 @@ def get_library_config(db):
     except KeyError:
         schema = ""
         
-    if (schema <> DEFAULT_SCHEMA_VERSION):
+    if (schema != DEFAULT_SCHEMA_VERSION):
         migrate (db, prefs)
         prefs.set ('configured', True)
                 
@@ -158,7 +160,7 @@ class ConfigWidget(QWidget):
                     self.prefs = get_library_config(db())
                 except:
                     self.prefs = prefs_a.GetFileName_Prefs (current_library_name ())    
-                    for key, col in DEFAULT_MIGRATION.iteritems():
+                    for key, col in six.iteritems(DEFAULT_MIGRATION):
                         self.prefs.set (col, DEFAULT_LIBRARY_VALUES[key])
                     self.prefs.set ('OPC_PREF', 'name')
 
@@ -320,7 +322,7 @@ class ConfigWidget(QWidget):
         
     def path_checkbox_clicked (self):
         if self.path_checkbox.isChecked ():
-            if (self.fname_column_combo.currentIndex() <> 0):
+            if (self.fname_column_combo.currentIndex() != 0):
                 self.fpath_column_combo.setEnabled (True)
             self.option_name = 'path'
             debug_print ("Checkbox activado: ", self.fname_column_combo.currentIndex())
