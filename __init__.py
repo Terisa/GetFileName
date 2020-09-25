@@ -66,11 +66,12 @@ except NameError:
 
 
 class GetFileName(FileTypePlugin):
-    name                    = PLUGIN_NAME
+    #name                    = PLUGIN_NAME
+    name                    = u"GetFileName"
     description             = _('Store the filename of the imported book in a custom column')
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = u"Anonimo"
-    version                 = (0, 0, 13)
+    version                 = (0, 1, 0)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
     on_import               = True
