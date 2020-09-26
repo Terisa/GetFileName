@@ -99,10 +99,11 @@ class GetFileName(FileTypePlugin):
         #print "Fich name: ", fich_name
         
         with ExclusiveFile(fich_name) as file:
-            lineas = file.readlines ()
+            #lineas = file.readlines ()
+            lineas = [x.decode('utf-8').strip() for x in file.readlines()]            
             #print "Lin aux: ", lineas
             
-            dictio_aux = {fich: self.original_path_to_file}
+            dictio_aux = {fich.encode('utf-8'): self.original_path_to_file.encode('utf-8')}
             
             json.dump (dictio_aux, file)
             file.write ('\n')
