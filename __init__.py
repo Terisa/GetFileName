@@ -68,10 +68,10 @@ except NameError:
 class GetFileName(FileTypePlugin):
     #name                    = PLUGIN_NAME
     name                    = u"GetFileName"
-    description             = _('Store the filename of the imported book in a custom column')
+    description             = _('Store the filename of the imported book in a custom column - Beta')
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = u"Anonimo"
-    version                 = (0, 1, 0)
+    version                 = (0, 1, 1)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
     on_import               = True
@@ -190,7 +190,10 @@ class GetFileName(FileTypePlugin):
                         dictio = {}
                         for line in lineas:
                             try:
-                                dict_aux = json.loads (line.rstrip ('\n'))
+                                try:
+                                    dict_aux = json.loads (line.rstrip ('\n'.encode()))
+                                except:
+                                    dict_aux = json.loads (line.rstrip ('\n'))                                
                                 for fich, path in six.iteritems(dict_aux):
                                     dictio[fich] = path
                                 #debug_print (dict_aux)
