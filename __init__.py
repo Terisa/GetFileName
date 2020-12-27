@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
-from __future__ import absolute_import
-from __future__ import print_function
+
+
+
 import six
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
@@ -22,7 +22,7 @@ __docformat__ = 'restructuredtext en'
 Store the filename.
 """
 
-PLUGIN_NAME = u"GetFileName"
+PLUGIN_NAME = "GetFileName"
 # Include an html helpfile in the plugin's zipfile with the following name.
 
 import sys, os, re, time, json, ast
@@ -67,10 +67,10 @@ except NameError:
 
 class GetFileName(FileTypePlugin):
     #name                    = PLUGIN_NAME
-    name                    = u"GetFileName"
+    name                    = "GetFileName"
     description             = _('Store the filename of the imported book in a custom column - Beta')
     supported_platforms     = ['linux', 'osx', 'windows']
-    author                  = u"Anonimo"
+    author                  = "Anonimo"
     version                 = (0, 1, 1)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
@@ -96,16 +96,21 @@ class GetFileName(FileTypePlugin):
         fich = os.path.basename (self.original_path_to_file)
         
         fich_name = self.prefs.getTemporaryFile ()
-        #print "Fich name: ", fich_name
+        print ("Fich name: ", fich_name)
         
         with ExclusiveFile(fich_name) as file:
             #lineas = file.readlines ()
             lineas = [x.decode('utf-8').strip() for x in file.readlines()]            
-            #print "Lin aux: ", lineas
+            print ("Lin aux: ", lineas)
             
-            dictio_aux = {fich.encode('utf-8'): self.original_path_to_file.encode('utf-8')}
+            # dictio_aux = {fich.encode('utf-8'): self.original_path_to_file.encode('utf-8')}
+            dictio_aux = {fich: self.original_path_to_file}
+            print ("Diccio: ", dictio_aux)
             
-            json.dump (dictio_aux, file)
+            data_json = json.dumps (dictio_aux).encode ('utf-8')
+            print ("Data: ", data_json)
+            #json.dump (dictio_aux, file)
+            file.write (data_json)
             file.write ('\n')
             
         debug_print ("GetFileType::run-fich")
@@ -181,7 +186,7 @@ class GetFileName(FileTypePlugin):
             
                 if (get_original_file):            
                     fich_name = prefs_value.getTemporaryFile ()
-                    # print "Name postadd: ", fich_name
+                    print ("Name postadd: ", fich_name)
             
                     dictio_archi = {}
                     with ExclusiveFile(fich_name) as file:
