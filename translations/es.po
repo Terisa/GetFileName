@@ -7,69 +7,107 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GetFileName\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-29 09:49+0000\n"
-"PO-Revision-Date: 2017-01-29 10:51+0100\n"
+"POT-Creation-Date: 2022-07-06 13:02+0100\n"
+"PO-Revision-Date: 2022-07-06 14:12+0200\n"
 "Last-Translator: \n"
 "Language-Team: Terisa <xxx@gmail.com>\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.11\n"
+"X-Generator: Poedit 2.4.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: __init__.py:65
+#: __init__.py:71
 msgid "Store the filename of the imported book in a custom column"
 msgstr ""
 "Almacena el nombre del fichero del libro importado en una columna "
-"personalizada."
+"personalizada"
 
-#: common_utils.py:236
+#: common_utils.py:289
+msgid "Help"
+msgstr "Ayuda"
+
+#: common_utils.py:298
 msgid "Restart required"
 msgstr "Se necesita reinicio"
 
-#: common_utils.py:237
+#: common_utils.py:299
 msgid ""
 "Title image not found - you must restart Calibre before using this plugin!"
 msgstr ""
 "No se encuentra la imagen del título - ¡debe reiniciar calibre antes de usar "
 "este plugin!"
 
-#: common_utils.py:517
+#: common_utils.py:408
 msgid "Undefined"
 msgstr "Indefinido"
 
-#: common_utils.py:591
+#: common_utils.py:617
+msgid "Create new column"
+msgstr "Crear nueva columna"
+
+#: common_utils.py:796
 msgid "Restart calibre now"
-msgstr "Reinicia ahora calibre"
+msgstr "Reiniciar ahora calibre"
 
-#: config.py:97
+#: common_utils.py:811
+msgid "Prefs Viewer dialog"
+msgstr "Diálogo del visor de preferencias"
+
+#: common_utils.py:812
+msgid "Preferences for: "
+msgstr "Preferencias para: "
+
+#: common_utils.py:845
+msgid "Clear"
+msgstr "Borrar"
+
+#: common_utils.py:847
+msgid "Clear all settings for this plugin"
+msgstr "Borra toda la configuración de este complemento"
+
+#: common_utils.py:906
+msgid "Settings deleted"
+msgstr "Configuración borrada"
+
+#: common_utils.py:907
+msgid "<p>All settings for this plugin in this library have been cleared.</p>"
+msgstr ""
+"<p>Se ha eliminado en esta biblioteca toda la configuración para este "
+"complemento.</p>"
+
+#: common_utils.py:908
+msgid "<p>Please restart calibre now.</p>"
+msgstr "<p>Por favor, reinicia ahora calibre.</p>"
+
+#: config.py:190
 msgid "File name options:"
-msgstr "Opciones de nombre de fichero"
+msgstr "Opciones de nombre de fichero:"
 
-#: config.py:104
+#: config.py:197
 msgid "Include folder"
 msgstr "Incluir directorio"
 
-#: config.py:106
+#: config.py:199
 msgid "It indicates it stores the folder with the filename."
 msgstr "Indica que incluye el directorio con el nombre del fichero."
 
-#: config.py:112
+#: config.py:205
 msgid "&File name:"
-msgstr "&Nombre del fichero"
+msgstr "&Nombre del fichero:"
 
-#: config.py:113
+#: config.py:206
 msgid "Custom text column for storing the filename and folder if included"
 msgstr ""
 "Columna de texto personalizada para almacenar el nombre del fichero y el "
 "directorio si está incluido"
 
-#: config.py:123
+#: config.py:216
 msgid "File &Extension:"
 msgstr "&Extensión del fichero:"
 
-#: config.py:124
+#: config.py:217
 msgid ""
 "Custom text column for storing the extension (if empty the filename is not "
 "splited). Not used if file name column is empty"
@@ -78,11 +116,11 @@ msgstr ""
 "nombre del fichero no se divide). No se utiliza si la columna con el nombre "
 "del fichero está vacía"
 
-#: config.py:137
+#: config.py:230
 msgid "File &Folder:"
 msgstr "&Directorio del fichero:"
 
-#: config.py:138
+#: config.py:231
 msgid ""
 "Custom text column for storing the folder (if empty the filename is not "
 "splited). Not used if file name column is empty"
@@ -91,11 +129,11 @@ msgstr ""
 "el nombre del fichero no se divide). No se utiliza si la columna con el "
 "nombre del fichero está vacía"
 
-#: config.py:150
+#: config.py:243
 msgid "File &Date:"
 msgstr "&Fecha del fichero:"
 
-#: config.py:151
+#: config.py:244
 msgid ""
 "Custom date column for storing the last modified date (if empty the date is "
 "not stored)"

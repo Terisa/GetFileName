@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-
-
+from __future__ import with_statement
+from __future__ import absolute_import
+from __future__ import print_function
 import six
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
@@ -22,7 +22,7 @@ __docformat__ = 'restructuredtext en'
 Store the filename.
 """
 
-PLUGIN_NAME = "GetFileName"
+PLUGIN_NAME = u"GetFileName"
 # Include an html helpfile in the plugin's zipfile with the following name.
 
 import sys, os, re, time, json, ast
@@ -67,11 +67,11 @@ except NameError:
 
 class GetFileName(FileTypePlugin):
     #name                    = PLUGIN_NAME
-    name                    = "GetFileName"
-    description             = _('Store the filename of the imported book in a custom column - Beta')
+    name                    = u"GetFileName"
+    description             = _('Store the filename of the imported book in a custom column')
     supported_platforms     = ['linux', 'osx', 'windows']
-    author                  = "Anonimo"
-    version                 = (0, 1, 1)
+    author                  = u"Anonimo"
+    version                 = (0, 1, 2)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
     on_import               = True
@@ -89,31 +89,31 @@ class GetFileName(FileTypePlugin):
         '''
         Se llama si on_import tiene el valor TRUE
         '''
-        
+        print ("GetFileType::run - ", path_to_ebook)
         import calibre_plugins.getfilename.prefs as prefs
 
         self.prefs = prefs.GetFileName_Prefs()
         fich = os.path.basename (self.original_path_to_file)
         
         fich_name = self.prefs.getTemporaryFile ()
-        print ("Fich name: ", fich_name)
+        print ("GetFileType::run - Fich name: ", fich_name)
         
         with ExclusiveFile(fich_name) as file:
-            #lineas = file.readlines ()
-            lineas = [x.decode('utf-8').strip() for x in file.readlines()]            
-            print ("Lin aux: ", lineas)
+            try:
+                print ("GetFileType::run - Have file")
+                dictio_aux = json.load(file)
+            except Exception as e:
+                print ("GetFileType::run - error opening file:", e)
+                dictio_aux = {}
+            dictio_aux[fich] = self.original_path_to_file
+            data = json.dumps (dictio_aux)
+            if not isinstance(data, bytes):
+                data = data.encode('utf-8')
+            file.seek(0)
+            file.write(data)
+            file.truncate()
             
-            # dictio_aux = {fich.encode('utf-8'): self.original_path_to_file.encode('utf-8')}
-            dictio_aux = {fich: self.original_path_to_file}
-            print ("Diccio: ", dictio_aux)
-            
-            data_json = json.dumps (dictio_aux).encode ('utf-8')
-            print ("Data: ", data_json)
-            #json.dump (dictio_aux, file)
-            file.write (data_json)
-            file.write ('\n')
-            
-        debug_print ("GetFileType::run-fich")
+        print ("GetFileType::run-fich")
         return path_to_ebook
         
     def postimport( self, book_id, book_format, db):
@@ -186,25 +186,15 @@ class GetFileName(FileTypePlugin):
             
                 if (get_original_file):            
                     fich_name = prefs_value.getTemporaryFile ()
-                    print ("Name postadd: ", fich_name)
+                    # print "Name postadd: ", fich_name
             
                     dictio_archi = {}
                     with ExclusiveFile(fich_name) as file:
-                        lineas = file.readlines()
-                        debug_print ("Lineas: ", lineas)
-                        dictio = {}
-                        for line in lineas:
-                            try:
-                                try:
-                                    dict_aux = json.loads (line.rstrip ('\n'.encode()))
-                                except:
-                                    dict_aux = json.loads (line.rstrip ('\n'))                                
-                                for fich, path in six.iteritems(dict_aux):
-                                    dictio[fich] = path
-                                #debug_print (dict_aux)
-                            except ValueError:
-                                debug_print ("Skipping invalid line: ", format(repr(line)))
-                        
+                        try:
+                            dictio = json.load(file)
+                        except Exception as e:
+                            debug_print ("Skipping invalid temporary file. Excepton: ", e)
+                            dictio = {}
                         #debug_print ('Dict buil: ', dictio)
                     
                     #archivos = self.prefs['procesados']
@@ -259,7 +249,7 @@ class GetFileName(FileTypePlugin):
                     else:
                         value_col[cfg.NAME] = os.path.basename(file)
                         nom_fich = value_col[cfg.NAME]
-                        path_ori = file
+                        #path_ori = file
                             
                     if (config_col[cfg.EXT]['nom'] != ''):
                         lis_datos = nom_fich.split ('.')

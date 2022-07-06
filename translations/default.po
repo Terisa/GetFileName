@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-26 05:14+0100\n"
+"POT-Creation-Date: 2022-07-06 13:13+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,25 +17,61 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: __init__.py:70
+#: __init__.py:71
 msgid "Store the filename of the imported book in a custom column"
 msgstr ""
 
-#: common_utils.py:237
+#: common_utils.py:289
+msgid "Help"
+msgstr ""
+
+#: common_utils.py:298
 msgid "Restart required"
 msgstr ""
 
-#: common_utils.py:238
+#: common_utils.py:299
 msgid ""
 "Title image not found - you must restart Calibre before using this plugin!"
 msgstr ""
 
-#: common_utils.py:518
+#: common_utils.py:408
 msgid "Undefined"
 msgstr ""
 
-#: common_utils.py:592
+#: common_utils.py:617
+msgid "Create new column"
+msgstr ""
+
+#: common_utils.py:796
 msgid "Restart calibre now"
+msgstr ""
+
+#: common_utils.py:811
+msgid "Prefs Viewer dialog"
+msgstr ""
+
+#: common_utils.py:812
+msgid "Preferences for: "
+msgstr ""
+
+#: common_utils.py:845
+msgid "Clear"
+msgstr ""
+
+#: common_utils.py:847
+msgid "Clear all settings for this plugin"
+msgstr ""
+
+#: common_utils.py:906
+msgid "Settings deleted"
+msgstr ""
+
+#: common_utils.py:907
+msgid "<p>All settings for this plugin in this library have been cleared.</p>"
+msgstr ""
+
+#: common_utils.py:908
+msgid "<p>Please restart calibre now.</p>"
 msgstr ""
 
 #: config.py:190

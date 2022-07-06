@@ -2,38 +2,37 @@
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
-import six
 
 __license__   = 'GPL v3'
-__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>'
+__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>, 2012-2022 updates by David Forrester <davidfor@internode.on.net>'
 __docformat__ = 'restructuredtext en'
 
-import os
+import os, time
+
+# calibre Python 3 compatibility.
+import six
+from six import text_type as unicode
 
 try:
-    from PyQt5 import QtWidgets as QtGui
-    from PyQt5.Qt import (Qt, QIcon, QPixmap, QLabel, QDialog, QHBoxLayout,
-                          QTableWidgetItem, QFont, QLineEdit, QComboBox,
+    from PyQt5.Qt import (Qt, QIcon, QPixmap, QLabel, QDialog, QHBoxLayout, QProgressBar,
+                          QTableWidgetItem, QFont, QLineEdit, QComboBox, QListWidget,
                           QVBoxLayout, QDialogButtonBox, QStyledItemDelegate, QDateTime,
-                          QRegExpValidator, QRegExp, QTextEdit,
-                          QListWidget, QAbstractItemView)
+                          QTextEdit, QAbstractItemView
+                          )
 except ImportError:
-    from PyQt4 import QtGui
-    from PyQt4.Qt import (Qt, QIcon, QPixmap, QLabel, QDialog, QHBoxLayout,
-                          QTableWidgetItem, QFont, QLineEdit, QComboBox,
+    from PyQt4.Qt import (Qt, QIcon, QPixmap, QLabel, QDialog, QHBoxLayout, QProgressBar,
+                          QTableWidgetItem, QFont, QLineEdit, QComboBox, QListWidget,
                           QVBoxLayout, QDialogButtonBox, QStyledItemDelegate, QDateTime,
-                          QRegExpValidator, QRegExp, QTextEdit,
-                          QListWidget, QAbstractItemView)
+                          QTextEdit, QAbstractItemView
+                          )
 
-from calibre.constants import iswindows
-from calibre.gui2 import gprefs, error_dialog, UNDEFINED_QDATETIME, info_dialog
+from calibre.constants import iswindows, DEBUG
+from calibre.gui2 import gprefs, error_dialog, info_dialog, UNDEFINED_QDATETIME, Application
 from calibre.gui2.actions import menu_action_unique_name
-from calibre.gui2.complete2 import EditWithComplete 
 from calibre.gui2.keyboard import ShortcutConfig
-from calibre.gui2.widgets import EnLineEdit
-from calibre.utils.config import config_dir, tweaks
-from calibre.utils.date import now, format_date, qt_to_dt, UNDEFINED_DATE
-from calibre.utils.icu import sort_key
+from calibre.utils.config import config_dir
+from calibre.utils.date import now, format_date, UNDEFINED_DATE
+from calibre import prints
 
 try:
     from calibre.gui2 import QVariant
@@ -47,7 +46,7 @@ else:
     def convert_qvariant(x):
         vt = x.type()
         if vt == x.String:
-            return six.text_type(x.toString())
+            return unicode(x.toString())
         if vt == x.List:
             return [convert_qvariant(i) for i in x.toList()]
         return x.toPyObject()
@@ -57,6 +56,14 @@ plugin_name = None
 # Global definition of our plugin resources. Used to share between the xxxAction and xxxBase
 # classes if you need any zip images to be displayed on the configuration dialog.
 plugin_icon_resources = {}
+
+BASE_TIME = None
+def debug_print(*args):
+    global BASE_TIME
+    if BASE_TIME is None:
+        BASE_TIME = time.time()
+    if DEBUG:
+        prints('DEBUG: %6.1f'%(time.time()-BASE_TIME), *args)
 
 
 def set_plugin_icon_resources(name, resources):
@@ -204,10 +211,58 @@ def create_menu_action_unique(ia, parent_menu, menu_text, image=None, tooltip=No
     return ac
 
 
+def get_library_uuid(db):
+    try:
+        library_uuid = db.library_id
+    except:
+        library_uuid = ''
+    return library_uuid
+
+
+def call_plugin_callback(plugin_callback, parent, plugin_results=None):
+    '''
+    This function executes a callback to a calling plugin. Because this 
+    can be called after a job has been run, the plugin and callback function 
+    are passed as strings.
+    
+    The parameters are:
+
+      plugin_callback - This is a dictionary definging the callbak function.
+          The elements are:
+              plugin_name - name of the plugin to be called
+              func_name - name of the functio to be called
+              args - Arguments to be passedd to the callback function. Will be
+                  passed as "*args" so must be a collection if it is supplied.
+              kwargs - Keyword arguments to be passedd to the callback function.
+                  Will be passed as "**kargs" so must be a dictionary if it 
+                  is supplied.
+
+      parent - parent gui needed to find the plugin.
+
+      plugin_results - Results to be passed to the plugin.
+      
+    If the kwargs dictionary contains an entry for "plugin_results", the value
+    will be replaced by the parameter "plugin_results". This allows the results
+    of the called plugin to be passed to the callback. 
+    '''
+    print("call_plugin_callback: have callback:", plugin_callback)
+    from calibre.customize.ui import find_plugin
+    plugin = find_plugin (plugin_callback['plugin_name'])
+    if plugin is not None:
+        print("call_plugin_callback: have plugin for callback:", plugin)
+        callback_func = getattr(plugin.load_actual_plugin(parent), plugin_callback['func_name'])
+        args = plugin_callback['args'] if 'args'  in plugin_callback else []
+        kwargs = plugin_callback['kwargs'] if 'kwargs' in plugin_callback else {}
+        if 'plugin_results' in kwargs and plugin_results:
+            kwargs['plugin_results'] = plugin_results
+        print("call_plugin_callback: about to call callback - kwargs=", kwargs)
+        callback_func(*args, **kwargs)
+
+
 class ImageLabel(QLabel):
 
     def __init__(self, parent, icon_name, size=16):
-        QLabel.__init__(self, parent)
+        super(ImageLabel,self).__init__(parent)
         pixmap = get_pixmap(icon_name)
         self.setPixmap(pixmap)
         self.setMaximumSize(size, size)
@@ -219,7 +274,7 @@ class ImageTitleLayout(QHBoxLayout):
     A reusable layout widget displaying an image followed by a title
     '''
     def __init__(self, parent, icon_name, title):
-        QHBoxLayout.__init__(self)
+        super(ImageTitleLayout, self).__init__()
         self.title_image_label = QLabel(parent)
         self.update_title_icon(icon_name)
         self.addWidget(self.title_image_label)
@@ -229,13 +284,19 @@ class ImageTitleLayout(QHBoxLayout):
         shelf_label = QLabel(title, parent)
         shelf_label.setFont(title_font)
         self.addWidget(shelf_label)
-        self.insertStretch(-1)
+        
+        # Add hyperlink to a help file at the right. We will replace the correct name when it is clicked.
+        help_label = QLabel(('<a href="http://www.foo.com/">{0}</a>').format(_("Help")), parent)
+        help_label.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
+        help_label.setAlignment(Qt.AlignRight)
+        help_label.linkActivated.connect(parent.help_link_activated)
+        self.addWidget(help_label)
 
     def update_title_icon(self, icon_name):
         pixmap = get_pixmap(icon_name)
         if pixmap is None:
-            error_dialog(self.parent(), _('Restart required'),
-                         _('Title image not found - you must restart Calibre before using this plugin!'), show=True)
+            error_dialog(self.parent(),  _("Restart required"),
+                          _("Title image not found - you must restart Calibre before using this plugin!"), show=True)
         else:
             self.title_image_label.setPixmap(pixmap)
         self.title_image_label.setMaximumSize(32, 32)
@@ -247,11 +308,14 @@ class SizePersistedDialog(QDialog):
     This dialog is a base class for any dialogs that want their size/position
     restored when they are next opened.
     '''
-    def __init__(self, parent, unique_pref_name):
-        QDialog.__init__(self, parent)
+    def __init__(self, parent, unique_pref_name, plugin_action=None):
+        super(SizePersistedDialog, self).__init__(parent)
         self.unique_pref_name = unique_pref_name
         self.geom = gprefs.get(unique_pref_name, None)
         self.finished.connect(self.dialog_closing)
+        self.help_anchor = None
+        self.setWindowIcon(get_icon('images/icon.png'))
+        self.plugin_action = plugin_action
 
     def resize_dialog(self):
         if self.geom is None:
@@ -278,20 +342,34 @@ class SizePersistedDialog(QDialog):
     def save_custom_pref(self, name, value):
         gprefs[self.unique_pref_name+':'+name] = value
 
+    def help_link_activated(self, url):
+        if self.plugin_action is not None:
+            self.plugin_action.show_help(anchor=self.help_anchor)
+
 
 class ReadOnlyTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, text):
         if text is None:
             text = ''
-        QTableWidgetItem.__init__(self, text, QtGui.QTableWidgetItem.UserType)
+        super(ReadOnlyTableWidgetItem, self).__init__(text)
         self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
 
+class NumericTableWidgetItem(QTableWidgetItem):
+
+    def __init__(self, number, is_read_only=False):
+        super(NumericTableWidgetItem, self).__init__('')
+        self.setData(Qt.DisplayRole, number)
+        if is_read_only:
+            self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
+
+    def value(self):
+        return self.data(Qt.DisplayRole)
 
 class RatingTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, rating, is_read_only=False):
-        QTableWidgetItem.__init__(self, '', QtGui.QTableWidgetItem.UserType)
+        super(RatingTableWidgetItem, self).__init__('')
         self.setData(Qt.DisplayRole, rating)
         if is_read_only:
             self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
@@ -300,15 +378,52 @@ class RatingTableWidgetItem(QTableWidgetItem):
 class DateTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, date_read, is_read_only=False, default_to_today=False, fmt=None):
-        if (date_read == UNDEFINED_DATE) and default_to_today:
+#        debug_print("DateTableWidgetItem:__init__ - date_read=", date_read)
+        if date_read is None or date_read == UNDEFINED_DATE and default_to_today:
             date_read = now()
         if is_read_only:
-            QTableWidgetItem.__init__(self, format_date(date_read, fmt), QtGui.QTableWidgetItem.UserType)
+            super(DateTableWidgetItem, self).__init__(format_date(date_read, fmt))
             self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
+            self.setData(Qt.DisplayRole, QDateTime(date_read))
         else:
-            QTableWidgetItem.__init__(self, '', QtGui.QTableWidgetItem.UserType)
-            dt = UNDEFINED_QDATETIME if date_read is None else QDateTime(date_read)
-            self.setData(Qt.DisplayRole, dt)
+            super(DateTableWidgetItem, self).__init__('')
+            self.setData(Qt.DisplayRole, QDateTime(date_read))
+
+from calibre.gui2.library.delegates import DateDelegate as _DateDelegate
+class DateDelegate(_DateDelegate):
+    '''
+    Delegate for dates. Because this delegate stores the
+    format as an instance variable, a new instance must be created for each
+    column. This differs from all the other delegates.
+    '''
+    def __init__(self, parent, fmt='dd MMM yyyy', default_to_today=True):
+        super(DateDelegate, self).__init__(parent)
+        self.format = fmt
+        self.default_to_today = default_to_today
+
+    def createEditor(self, parent, option, index):
+        qde = QStyledItemDelegate.createEditor(self, parent, option, index)
+        qde.setDisplayFormat(self.format)
+        qde.setMinimumDateTime(UNDEFINED_QDATETIME)
+        qde.setSpecialValueText(_('Undefined'))
+        qde.setCalendarPopup(True)
+        return qde
+
+    def setEditorData(self, editor, index):
+        val = index.model().data(index, Qt.DisplayRole).toDateTime()
+        if val is None or val == UNDEFINED_QDATETIME:
+            if self.default_to_today:
+                val = self.default_date
+            else:
+                val = UNDEFINED_QDATETIME
+        editor.setDateTime(val)
+
+    def setModelData(self, editor, model, index):
+        val = editor.dateTime()
+        if val <= UNDEFINED_QDATETIME:
+            model.setData(index, UNDEFINED_QDATETIME, Qt.EditRole)
+        else:
+            model.setData(index, QDateTime(val), Qt.EditRole)
 
 
 class NoWheelComboBox(QComboBox):
@@ -321,8 +436,40 @@ class NoWheelComboBox(QComboBox):
 class CheckableTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, checked=False, is_tristate=False):
-        QTableWidgetItem.__init__(self, '')
-        self.setFlags(Qt.ItemFlags(Qt.ItemIsSelectable | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled ))
+        super(CheckableTableWidgetItem, self).__init__('')
+        try: # TODO: For Qt Backwards compatibilyt.
+            self.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled )
+        except:
+            self.setFlags(Qt.ItemFlags(Qt.ItemIsSelectable | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled ))
+        if is_tristate:
+            self.setFlags(self.flags() | Qt.ItemIsTristate)
+        if checked:
+            self.setCheckState(Qt.Checked)
+        else:
+            if is_tristate and checked is None:
+                self.setCheckState(Qt.PartiallyChecked)
+            else:
+                self.setCheckState(Qt.Unchecked)
+
+    def get_boolean_value(self):
+        '''
+        Return a boolean value indicating whether checkbox is checked
+        If this is a tristate checkbox, a partially checked value is returned as None
+        '''
+        if self.checkState() == Qt.PartiallyChecked:
+            return None
+        else:
+            return self.checkState() == Qt.Checked
+
+
+class ReadOnlyCheckableTableWidgetItem(ReadOnlyTableWidgetItem):
+
+    def __init__(self, text, checked=False, is_tristate=False):
+        super(ReadOnlyCheckableTableWidgetItem, self).__init__(text)
+        try: # TODO: For Qt Backwards compatibilyt.
+            self.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled )
+        except:
+            self.setFlags(Qt.ItemFlags(Qt.ItemIsSelectable | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled ))
         if is_tristate:
             self.setFlags(self.flags() | Qt.ItemIsTristate)
         if checked:
@@ -347,7 +494,7 @@ class CheckableTableWidgetItem(QTableWidgetItem):
 class TextIconWidgetItem(QTableWidgetItem):
 
     def __init__(self, text, icon, tooltip=None, is_read_only=False):
-        QTableWidgetItem.__init__(self, text)
+        super(TextIconWidgetItem, self).__init__(self, text)
         if icon:
             self.setIcon(icon)
         if tooltip:
@@ -359,7 +506,7 @@ class TextIconWidgetItem(QTableWidgetItem):
 class ReadOnlyTextIconWidgetItem(ReadOnlyTableWidgetItem):
 
     def __init__(self, text, icon):
-        ReadOnlyTableWidgetItem.__init__(self, text)
+        super(ReadOnlyTextIconWidgetItem, self).__init__(text)
         if icon:
             self.setIcon(icon)
 
@@ -369,52 +516,21 @@ class ReadOnlyLineEdit(QLineEdit):
     def __init__(self, text, parent):
         if text is None:
             text = ''
-        QLineEdit.__init__(self, text, parent)
+        super(ReadOnlyLineEdit, self).__init__(text, parent)
         self.setEnabled(False)
-
-
-class NumericLineEdit(QLineEdit):
-    '''
-    Allows a numeric value up to two decimal places, or an integer
-    '''
-    def __init__(self, *args):
-        QLineEdit.__init__(self, *args)
-        self.setValidator(QRegExpValidator(QRegExp(r'(^\d*\.[\d]{1,2}$)|(^[1-9]\d*[\.]$)'), self))
-
-
-class ListComboBox(QComboBox):
-
-    def __init__(self, parent, values, selected_value=None):
-        QComboBox.__init__(self, parent)
-        self.values = values
-        if selected_value is not None:
-            self.populate_combo(selected_value)
-
-    def populate_combo(self, selected_value):
-        self.clear()
-        selected_idx = idx = -1
-        for value in self.values:
-            idx = idx + 1
-            self.addItem(value)
-            if value == selected_value:
-                selected_idx = idx
-        self.setCurrentIndex(selected_idx)
-
-    def selected_value(self):
-        return six.text_type(self.currentText())
 
 
 class KeyValueComboBox(QComboBox):
 
     def __init__(self, parent, values, selected_key):
-        QComboBox.__init__(self, parent)
+        super(KeyValueComboBox, self).__init__(parent)
         self.values = values
         self.populate_combo(selected_key)
 
     def populate_combo(self, selected_key):
         self.clear()
         selected_idx = idx = -1
-        for key, value in six.iteritems(self.values):
+        for key, value in list(self.values.items()):
             idx = idx + 1
             self.addItem(value)
             if key == selected_key:
@@ -422,43 +538,145 @@ class KeyValueComboBox(QComboBox):
         self.setCurrentIndex(selected_idx)
 
     def selected_key(self):
-        for key, value in six.iteritems(self.values):
-            if value == six.text_type(self.currentText()).strip():
+        for key, value in list(self.values.items()):
+            if value == unicode(self.currentText()).strip():
                 return key
+
+
+class ProfileComboBox(QComboBox):
+
+    def __init__(self, parent, profiles, selected_text=None):
+        super(ProfileComboBox, self).__init__(parent)
+        self.populate_combo(profiles, selected_text)
+
+    def populate_combo(self, profiles, selected_text=None):
+        self.blockSignals(True)
+        self.clear()
+        for list_name in list(sorted(profiles.keys())):
+            self.addItem(list_name)
+        self.select_view(selected_text)
+
+    def select_view(self, selected_text):
+        self.blockSignals(True)
+        if selected_text:
+            idx = self.findText(selected_text)
+            self.setCurrentIndex(idx)
+        elif self.count() > 0:
+            self.setCurrentIndex(0)
+        self.blockSignals(False)
+
+
+class KeyComboBox(QComboBox):
+
+    def __init__(self, parent, values, selected_key):
+        super(KeyComboBox, self).__init__(parent)
+        self.values = values
+        self.populate_combo(selected_key)
+
+    def populate_combo(self, selected_key):
+        self.clear()
+        selected_idx = idx = -1
+        for key in sorted(self.values.keys()):
+            idx = idx + 1
+            self.addItem(key)
+            if key == selected_key:
+                selected_idx = idx
+        self.setCurrentIndex(selected_idx)
+
+    def selected_key(self):
+        for key, value in list(self.values.items()):
+            if key == unicode(self.currentText()).strip():
+                return key
+
+
+class SimpleComboBox(QComboBox):
+
+    def __init__(self, parent, values, selected_value):
+        super(SimpleComboBox, self).__init__(parent)
+        self.values = values
+        self.populate_combo(selected_value)
+
+    def populate_combo(self, selected_value):
+        self.clear()
+        selected_idx = idx = -1
+        for value in sorted(self.values):
+            idx = idx + 1
+            self.addItem(value)
+            if value == selected_value:
+                selected_idx = idx
+        self.setCurrentIndex(selected_idx)
+
+    def selected_key(self):
+        for value in list(self.values):
+            if value == unicode(self.currentText()).strip():
+                return value
 
 
 class CustomColumnComboBox(QComboBox):
 
-    def __init__(self, parent, custom_columns={}, selected_column='', initial_items=['']):
-        QComboBox.__init__(self, parent)
+    CREATE_NEW_COLUMN_ITEM = _("Create new column")
+
+    def __init__(self, parent, custom_columns={}, selected_column='', initial_items=[''], create_column_callback=None):
+        super(CustomColumnComboBox, self).__init__(parent)
+        debug_print("CustomColumnComboBox::__init__ - create_column_callback=", create_column_callback)
+        self.create_column_callback = create_column_callback
+        self.current_index = 0
+        if create_column_callback is not None:
+            self.currentTextChanged.connect(self.current_text_changed)
         self.populate_combo(custom_columns, selected_column, initial_items)
 
-    def populate_combo(self, custom_columns, selected_column, initial_items=['']):
+    def populate_combo(self, custom_columns, selected_column, initial_items=[''], show_lookup_name=True):
         self.clear()
-        self.column_names = list(initial_items)
-        if len(initial_items) > 0:
-            self.addItems(initial_items)
+        self.column_names = []
         selected_idx = 0
-        for idx, value in enumerate(initial_items):
-            if value == selected_column:
-                selected_idx = idx
+
+        # debug_print("CustomColumnComboBox::populate_combo - custom_columns=", custom_columns)
+        # debug_print("CustomColumnComboBox::populate_combo - selected_column=", selected_column)
         for key in sorted(custom_columns.keys()):
             self.column_names.append(key)
-            self.addItem('%s (%s)'%(key, custom_columns[key]['name']))
+            display_name = '%s (%s)'%(key, custom_columns[key]['name']) if show_lookup_name else custom_columns[key]['name']
+            self.addItem(display_name)
             if key == selected_column:
                 selected_idx = len(self.column_names) - 1
-        self.setCurrentIndex(selected_idx)
+        
+        # debug_print("CustomColumnComboBox::populate_combo - initial_items=", initial_items)
+        # debug_print("CustomColumnComboBox::populate_combo - initial_items.__class__=", initial_items.__class__)
+        # debug_print("CustomColumnComboBox::populate_combo - initial_items.__class__=", isinstance(initial_items, dict))
+        if isinstance(initial_items, dict):
+            for key in sorted(initial_items.keys()):
+                self.column_names.append(key)
+                display_name = initial_items[key]
+                self.addItem(display_name)
+                if key == selected_column:
+                    selected_idx = len(self.column_names) - 1
+        else:
+            for display_name in initial_items:
+                # debug_print("CustomColumnComboBox::populate_combo - initial_items - display_name=", display_name)
+                self.column_names.append(display_name)
+                self.addItem(display_name)
+                if display_name == selected_column:
+                    selected_idx = len(self.column_names) - 1
 
-    def select_column(self, key):
-        selected_idx = 0
-        for i, val in enumerate(self.column_names):
-            if val == key:
-                selected_idx = i
-                break
+        debug_print("CustomColumnComboBox::create_column_callback=", self.create_column_callback)
+        if self.create_column_callback is not None:
+            self.addItem(self.CREATE_NEW_COLUMN_ITEM)
+
         self.setCurrentIndex(selected_idx)
 
     def get_selected_column(self):
         return self.column_names[self.currentIndex()]
+    
+    def current_text_changed(self, new_text):
+        debug_print("CustomColumnComboBox::current_text_changed - new_text='%s'" % new_text)
+        debug_print("CustomColumnComboBox::current_text_changed - new_text == self.CREATE_NEW_COLUMN_ITEM='%s'" % (new_text == self.CREATE_NEW_COLUMN_ITEM))
+        if new_text == self.CREATE_NEW_COLUMN_ITEM:
+            debug_print("CustomColumnComboBox::current_text_changed - calling callback")
+            result = self.create_column_callback()
+            if not result:
+                debug_print("CustomColumnComboBox::current_text_changed - column not created, setting back to original value - ", self.current_index)
+                self.setCurrentIndex(self.current_index)
+        else:
+            self.current_index = self.currentIndex()
 
 
 class KeyboardConfigDialog(SizePersistedDialog):
@@ -466,7 +684,7 @@ class KeyboardConfigDialog(SizePersistedDialog):
     This dialog is used to allow editing of keyboard shortcuts.
     '''
     def __init__(self, gui, group_name):
-        SizePersistedDialog.__init__(self, gui, 'Keyboard shortcut dialog')
+        super(KeyboardConfigDialog, self).__init__(gui, 'Keyboard shortcut dialog')
         self.gui = gui
         self.setWindowTitle('Keyboard shortcuts')
         layout = QVBoxLayout(self)
@@ -494,98 +712,84 @@ class KeyboardConfigDialog(SizePersistedDialog):
         self.accept()
 
 
-class DateDelegate(QStyledItemDelegate):
+from calibre.gui2.library.delegates import TextDelegate
+class TextWithLengthDelegate(TextDelegate):
     '''
-    Delegate for dates. Because this delegate stores the
-    format as an instance variable, a new instance must be created for each
-    column. This differs from all the other delegates.
+    Override the calibre TextDelegate to set a maximum length.
     '''
-    def __init__(self, parent, fmt='dd MMM yyyy', default_to_today=True):
-        QStyledItemDelegate.__init__(self, parent)
-        self.format = fmt
-        self.default_to_today = default_to_today
-
-    def displayText(self, val, locale):
-        d = val.toDateTime()
-        if d <= UNDEFINED_QDATETIME:
-            return ''
-        return format_date(qt_to_dt(d, as_utc=False), self.format)
+    def __init__(self, parent, text_length=None):
+        super(TextWithLengthDelegate, self).__init__(parent)
+        self.text_length = text_length
 
     def createEditor(self, parent, option, index):
-        qde = QStyledItemDelegate.createEditor(self, parent, option, index)
-        qde.setDisplayFormat(self.format)
-        qde.setMinimumDateTime(UNDEFINED_QDATETIME)
-        qde.setSpecialValueText(_('Undefined'))
-        qde.setCalendarPopup(True)
-        return qde
-
-    def setEditorData(self, editor, index):
-        val = index.model().data(index, Qt.DisplayRole).toDateTime()
-        if val is None or val == UNDEFINED_QDATETIME:
-            if self.default_to_today:
-                val = self.default_date
-            else:
-                val = UNDEFINED_QDATETIME
-        editor.setDateTime(val)
-
-    def setModelData(self, editor, model, index):
-        val = editor.dateTime()
-        if val <= UNDEFINED_QDATETIME:
-            model.setData(index, UNDEFINED_QDATETIME, Qt.EditRole)
-        else:
-            model.setData(index, QDateTime(val), Qt.EditRole)
-
-
-class CompleteDelegate(QStyledItemDelegate):
-    '''
-    Hacked version of the calibre completion delegate that is more reusable
-    without relying on a BooksModel with specific named functions on it.
-    '''
-    def __init__(self, parent, db, sep, items_func_name, space_before_sep=False,
-                 col=None, col_fn=None):
-        QStyledItemDelegate.__init__(self, parent)
-        self.db = db
-        self.sep = sep
-        self.items_func_name = items_func_name
-        self.col = col
-        self.col_fn = col_fn
-        self.space_before_sep = space_before_sep
-
-    def createEditor(self, parent, option, index):
-        if self.db and hasattr(self.db, self.items_func_name):
-            col = self.col
-            if col is None:
-                # We have not specified an explicit column, so we need
-                # to lookup a column name. The calibre one will rely on stuff
-                # on the model, we will rely on a callback function instead
-                col = self.col_fn(index.column())
-            editor = EditWithComplete(parent)
-            editor.set_separator(self.sep)
-            editor.set_space_before_sep(self.space_before_sep)
-            if self.sep == '&':
-                editor.set_add_separator(tweaks['authors_completer_append_separator'])
-            if col.startswith('#'):
-                all_items = list(self.db.all_custom(
-                    label=self.db.field_metadata.key_to_label(col)))
-            else:
-                all_items = getattr(self.db, self.items_func_name)()
-            editor.update_items_cache(all_items)
-            for item in sorted(all_items, key=sort_key):
-                editor.addItem(item)
-            ct = index.data(Qt.DisplayRole).toString()
-            editor.show_initial_value(ct)
-        else:
-            editor = EnLineEdit(parent)
+        editor = super(TextWithLengthDelegate, self).createEditor(parent, option, index)
+        if self.text_length:
+            editor.setMaxLength(self.text_length)
         return editor
 
-    def setModelData(self, editor, model, index):
-        if isinstance(editor, EditWithComplete):
-            val = editor.lineEdit().text()
-#            model.setData(index, QVariant(val), Qt.EditRole)
-            model.setData(index, val, Qt.EditRole)
-        else:
-            QStyledItemDelegate.setModelData(self, editor, model, index)
+def get_title_authors_text(db, book_id):
 
+    def authors_to_list(db, book_id):
+        authors = db.authors(book_id, index_is_id=True)
+        if authors:
+            return [a.strip().replace('|',',') for a in authors.split(',')]
+        return []
+
+    title = db.title(book_id, index_is_id=True)
+    authors = authors_to_list(db, book_id)
+    from calibre.ebooks.metadata import authors_to_string
+    return '%s / %s'%(title, authors_to_string(authors))
+
+
+class ProgressBar(QDialog):
+    def __init__(self, parent=None, max_items=100, window_title='Progress Bar',
+                 label='Label goes here', on_top=False):
+        if on_top:
+            super(ProgressBar, self).__init__(parent=parent, flags=Qt.WindowStaysOnTopHint)
+        else:
+            super(ProgressBar, self).__init__(parent=parent)
+        self.application = Application
+        self.setWindowTitle(window_title)
+        self.l = QVBoxLayout(self)
+        self.setLayout(self.l)
+
+        self.label = QLabel(label)
+#         self.label.setAlignment(Qt.AlignHCenter)
+        self.l.addWidget(self.label)
+
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setRange(0, max_items)
+        self.progressBar.setValue(0)
+        self.l.addWidget(self.progressBar)
+
+    def increment(self):
+        self.progressBar.setValue(self.progressBar.value() + 1)
+        self.refresh()
+
+    def refresh(self):
+        self.application.processEvents()
+
+    def set_label(self, value):
+        self.label.setText(value)
+        self.refresh()
+
+    def left_align_label(self):
+        self.label.setAlignment(Qt.AlignLeft )
+
+    def set_maximum(self, value):
+        self.progressBar.setMaximum(value)
+        self.refresh()
+
+    def set_value(self, value):
+        self.progressBar.setValue(value)
+        self.refresh()
+
+    def set_progress_format(self, progress_format=None):
+        pass
+#         if format is not None:
+#             self.progressBar.setFormat(progress_format)
+#         else:
+#             self.progressBar.resetFormat()
 
 def prompt_for_restart(parent, title, message):
     d = info_dialog(parent, title, message, show_copy_button=False)
@@ -600,11 +804,12 @@ def prompt_for_restart(parent, title, message):
     b.clicked.disconnect()
     return d.do_restart
 
+
 class PrefsViewerDialog(SizePersistedDialog):
 
     def __init__(self, gui, namespace):
-        SizePersistedDialog.__init__(self, gui, 'Prefs Viewer dialog')
-        self.setWindowTitle('Preferences for: '+namespace)
+        super(PrefsViewerDialog, self).__init__(gui, _('Prefs Viewer dialog'))
+        self.setWindowTitle(_('Preferences for: ') + namespace)
 
         self.gui = gui
         self.db = gui.current_db
@@ -637,16 +842,16 @@ class PrefsViewerDialog(SizePersistedDialog):
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self._apply_changes)
         button_box.rejected.connect(self.reject)
-        self.clear_button = button_box.addButton('Clear', QDialogButtonBox.ResetRole)
+        self.clear_button = button_box.addButton(_('Clear'), QDialogButtonBox.ResetRole)
         self.clear_button.setIcon(get_icon('trash.png'))
-        self.clear_button.setToolTip('Clear all settings for this plugin')
+        self.clear_button.setToolTip(_('Clear all settings for this plugin'))
         self.clear_button.clicked.connect(self._clear_settings)
         layout.addWidget(button_box)
 
     def _populate_settings(self):
         self.keys_list.clear()
         ns_prefix = self._get_ns_prefix()
-        keys = sorted([k[len(ns_prefix):] for k in six.iterkeys(self.db.prefs)
+        keys = sorted([k[len(ns_prefix):] for k in list(self.db.prefs.keys())
                        if k.startswith(ns_prefix)])
         for key in keys:
             self.keys_list.addItem(key)
@@ -657,7 +862,7 @@ class PrefsViewerDialog(SizePersistedDialog):
         if new_row < 0:
             self.value_text.clear()
             return
-        key = six.text_type(self.keys_list.currentItem().text())
+        key = unicode(self.keys_list.currentItem().text())
         val = self.db.prefs.get_namespaced(self.namespace, key, '')
         self.value_text.setPlainText(self.db.prefs.to_raw(val))
 
@@ -673,8 +878,8 @@ class PrefsViewerDialog(SizePersistedDialog):
         if not confirm(message, self.namespace+'_clear_settings', self):
             return
 
-        val = self.db.prefs.raw_to_object(six.text_type(self.value_text.toPlainText()))
-        key = six.text_type(self.keys_list.currentItem().text())
+        val = self.db.prefs.raw_to_object(unicode(self.value_text.toPlainText()))
+        key = unicode(self.keys_list.currentItem().text())
         self.db.prefs.set_namespaced(self.namespace, key, val)
 
         restart = prompt_for_restart(self, 'Settings changed',
@@ -694,13 +899,14 @@ class PrefsViewerDialog(SizePersistedDialog):
             return
 
         ns_prefix = self._get_ns_prefix()
-        keys = [k for k in six.iterkeys(self.db.prefs) if k.startswith(ns_prefix)]
+        keys = [k for k in list(self.db.prefs.keys()) if k.startswith(ns_prefix)]
         for k in keys:
             del self.db.prefs[k]
         self._populate_settings()
-        restart = prompt_for_restart(self, 'Settings deleted',
-                           '<p>All settings for this plugin in this library have been cleared.</p>'
-                           '<p>Please restart calibre now.</p>')
+        restart = prompt_for_restart(self, _('Settings deleted'),
+                           _('<p>All settings for this plugin in this library have been cleared.</p>') +
+                           _('<p>Please restart calibre now.</p>'))
         self.close()
         if restart:
             self.gui.quit(restart=True)
+
