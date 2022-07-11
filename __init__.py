@@ -71,7 +71,7 @@ class GetFileName(FileTypePlugin):
     description             = _('Store the filename of the imported book in a custom column')
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = u"Anonimo"
-    version                 = (0, 1, 2)
+    version                 = (0, 2, 0)
     minimum_calibre_version = (2, 79, 0)  # Qt5.
     file_types              = set(['*'])
     on_import               = True
